@@ -10,6 +10,7 @@ env/
 .env
 .env.*
 !.env.example
+!frontend/.env.production
 
 # Local database (contains real user data)
 backend/database.sqlite

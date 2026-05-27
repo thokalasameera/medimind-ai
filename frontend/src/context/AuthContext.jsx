@@ -2,8 +2,16 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext();
 
-export const API_URL = 'http://localhost:5000/api';
-export const ML_API_URL = 'http://localhost:5005';
+// Production build (Vercel) always uses Render — never localhost
+const RENDER_API = 'https://medimind-backend-g6el.onrender.com/api';
+
+export const API_URL = import.meta.env.PROD
+  ? RENDER_API
+  : (import.meta.env.VITE_API_URL || 'http://localhost:5000/api');
+
+export const ML_API_URL = import.meta.env.PROD
+  ? (import.meta.env.VITE_ML_API_URL || '')
+  : (import.meta.env.VITE_ML_API_URL || 'http://localhost:5005');
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -58,7 +66,13 @@ export const AuthProvider = ({ children }) => {
         return { success: false, error: data.error || "Registration failed." };
       }
     } catch (err) {
-      return { success: false, error: "Network error. Please make sure the server is running." };
+      console.error('Register failed:', API_URL, err);
+      return {
+        success: false,
+        error: import.meta.env.PROD
+          ? 'Cannot reach server. Wait 60 sec (Render waking up) and try again.'
+          : 'Network error. Please make sure the server is running.',
+      };
     }
   };
 
@@ -81,7 +95,13 @@ export const AuthProvider = ({ children }) => {
         return { success: false, error: data.error || "Invalid credentials." };
       }
     } catch (err) {
-      return { success: false, error: "Network error. Please make sure the server is running." };
+      console.error('Login failed:', API_URL, err);
+      return {
+        success: false,
+        error: import.meta.env.PROD
+          ? 'Cannot reach server. Wait 60 sec (Render waking up) and try again.'
+          : 'Network error. Please make sure the server is running.',
+      };
     }
   };
 
@@ -158,5 +178,11 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within AuthProvider');
+  }
+  return context;
+};
 export default AuthContext;
