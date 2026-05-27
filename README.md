@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # MediMind AI — Futuristic AI-Powered Healthcare Console
 
 ### *"Predict. Prevent. Protect."*
@@ -99,3 +100,7 @@ To connect the console to a **MySQL** server as requested:
 * **Circadian Voice Readouts**: Symptoms Checker results are vocalized aloud using browser SpeechSynthesis.
 * **Web Audio Sound Alarm**: Medicine reminders match current local time, flashing a warning banner and synthesizing electronic alarm tones in your sound card directly via HTML5 Web Audio oscillators.
 * **Circadian Graph Backfill**: New user accounts are seeded with 7 days of realistic biometric data (hydration/sleep logs) to immediately render vibrant animated graphs upon first boot!
+=======
+# medimind-ai
+MediMind AI is an intelligent healthcare dashboard designed to provide smart health monitoring and AI-powered assistance. The platform includes features like symptom checking, AI health chat, prediction reports, hydration tracking, sleep monitoring, reminders, and emergency alerts through a modern futuristic interface.
+>>>>>>> 481952549ab2b9032800a0c61ccec675214afbd4
