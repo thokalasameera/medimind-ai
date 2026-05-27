@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# Environment & secrets (never upload passwords or API keys)
+.env
+.env.*
+!.env.example
+
+# Local database (contains real user data)
+backend/database.sqlite
+*.sqlite
+*.db
+
+# Build output
+frontend/dist/
+dist/
+build/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS & editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.sw?
+
+# Python / ML cache
+.pytest_cache/
+*.pkl.bak
+.ml_cache/
+
+# Misc
+*.local
+coverage/
+.cache/
