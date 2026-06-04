@@ -28,6 +28,16 @@ const MedicineReminders = () => {
   const [submitting, setSubmitting] = useState(false);
   const [activeAlarm, setActiveAlarm] = useState(null);
   const [muteAlarm, setMuteAlarm] = useState(false);
+  const [isDemoMode, setIsDemoMode] = useState(false);
+
+  const playConfetti = () => {
+    confetti({
+      particleCount: 50,
+      spread: 30,
+      origin: { y: 0.8 },
+      colors: ['#34d399', '#22d3ee']
+    });
+  };
 
   // Fetch reminders on mount
   const fetchReminders = async () => {
@@ -35,18 +45,34 @@ const MedicineReminders = () => {
       const res = await fetch(`${API_URL}/reminders`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      if (!res.ok) throw new Error("Backend offline");
       const data = await res.json();
       if (data.success) {
         setReminders(data.reminders);
+        localStorage.setItem('medimind_reminders', JSON.stringify(data.reminders));
+        setIsDemoMode(false);
+      } else {
+        throw new Error();
       }
     } catch (err) {
-      console.error(err);
+      console.warn("Express backend offline, loading reminders from localStorage.");
+      setIsDemoMode(true);
+      const local = localStorage.getItem('medimind_reminders');
+      if (local) {
+        setReminders(JSON.parse(local));
+      }
     }
   };
 
   useEffect(() => {
     if (token) {
       fetchReminders();
+    } else {
+      setIsDemoMode(true);
+      const local = localStorage.getItem('medimind_reminders');
+      if (local) {
+        setReminders(JSON.parse(local));
+      }
     }
   }, [token]);
 
@@ -117,6 +143,9 @@ const MedicineReminders = () => {
     
     setSubmitting(true);
     try {
+      if (isDemoMode) {
+        throw new Error("Demo mode active");
+      }
       const res = await fetch(`${API_URL}/reminders`, {
         method: 'POST',
         headers: {
@@ -125,24 +154,41 @@ const MedicineReminders = () => {
         },
         body: JSON.stringify({ medName, dosage, frequency, time })
       });
+      if (!res.ok) throw new Error("Backend connection failed");
       const data = await res.json();
       if (data.success) {
-        setReminders(prev => [...prev, data.reminder].sort((a,b) => a.time.localeCompare(b.time)));
+        const updated = [...reminders, data.reminder].sort((a,b) => a.time.localeCompare(b.time));
+        setReminders(updated);
+        localStorage.setItem('medimind_reminders', JSON.stringify(updated));
         setMedName('');
         setDosage('1 tablet');
         setFrequency('Once daily');
         setTime('08:00');
-        
-        confetti({
-          particleCount: 50,
-          spread: 30,
-          origin: { y: 0.8 },
-          colors: ['#34d399', '#22d3ee']
-        });
+        playConfetti();
+      } else {
+        throw new Error();
       }
     } catch (err) {
-      console.error(err);
-      alert("Failed to write to reminder database.");
+      console.warn("Express backend offline, storing reminder in localStorage.", err);
+      setIsDemoMode(true);
+      const mockReminder = {
+        id: 'mock-' + Date.now(),
+        medName,
+        dosage,
+        frequency,
+        time,
+        isActive: true,
+        completedToday: false
+      };
+      const updated = [...reminders, mockReminder].sort((a,b) => a.time.localeCompare(b.time));
+      setReminders(updated);
+      localStorage.setItem('medimind_reminders', JSON.stringify(updated));
+      
+      setMedName('');
+      setDosage('1 tablet');
+      setFrequency('Once daily');
+      setTime('08:00');
+      playConfetti();
     } finally {
       setSubmitting(false);
     }
@@ -150,54 +196,85 @@ const MedicineReminders = () => {
 
   const handleToggle = async (id) => {
     try {
+      if (isDemoMode || String(id).startsWith('mock-')) {
+        throw new Error("Local fallback mode");
+      }
       const res = await fetch(`${API_URL}/reminders/toggle/${id}`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      if (!res.ok) throw new Error();
       const data = await res.json();
       if (data.success) {
-        setReminders(prev => prev.map(r => r.id === id ? { ...r, isActive: data.reminder.isActive } : r));
+        const updated = reminders.map(r => r.id === id ? { ...r, isActive: data.reminder.isActive } : r);
+        setReminders(updated);
+        localStorage.setItem('medimind_reminders', JSON.stringify(updated));
       }
     } catch (err) {
-      console.error(err);
+      console.warn("Toggling reminder locally.", err);
+      const updated = reminders.map(r => r.id === id ? { ...r, isActive: !r.isActive } : r);
+      setReminders(updated);
+      localStorage.setItem('medimind_reminders', JSON.stringify(updated));
     }
   };
 
   const handleComplete = async (id) => {
     try {
+      if (isDemoMode || String(id).startsWith('mock-')) {
+        throw new Error("Local fallback mode");
+      }
       const res = await fetch(`${API_URL}/reminders/complete/${id}`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      if (!res.ok) throw new Error();
       const data = await res.json();
       if (data.success) {
-        setReminders(prev => prev.map(r => r.id === id ? { ...r, completedToday: data.reminder.completedToday } : r));
-        
-        // Abort alarm if checked taken!
+        const updated = reminders.map(r => r.id === id ? { ...r, completedToday: data.reminder.completedToday } : r);
+        setReminders(updated);
+        localStorage.setItem('medimind_reminders', JSON.stringify(updated));
         if (activeAlarm && activeAlarm.id === id) {
           setActiveAlarm(null);
         }
       }
     } catch (err) {
-      console.error(err);
+      console.warn("Completing reminder locally.", err);
+      const updated = reminders.map(r => r.id === id ? { ...r, completedToday: !r.completedToday } : r);
+      setReminders(updated);
+      localStorage.setItem('medimind_reminders', JSON.stringify(updated));
+      if (activeAlarm && activeAlarm.id === id) {
+        setActiveAlarm(null);
+      }
     }
   };
 
   const handleDelete = async (id) => {
     try {
+      if (isDemoMode || String(id).startsWith('mock-')) {
+        throw new Error("Local fallback mode");
+      }
       const res = await fetch(`${API_URL}/reminders/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      if (!res.ok) throw new Error();
       const data = await res.json();
       if (data.success) {
-        setReminders(prev => prev.filter(r => r.id !== id));
+        const updated = reminders.filter(r => r.id !== id);
+        setReminders(updated);
+        localStorage.setItem('medimind_reminders', JSON.stringify(updated));
         if (activeAlarm && activeAlarm.id === id) {
           setActiveAlarm(null);
         }
       }
     } catch (err) {
-      console.error(err);
+      console.warn("Deleting reminder locally.", err);
+      const updated = reminders.filter(r => r.id !== id);
+      setReminders(updated);
+      localStorage.setItem('medimind_reminders', JSON.stringify(updated));
+      if (activeAlarm && activeAlarm.id === id) {
+        setActiveAlarm(null);
+      }
     }
   };
 
@@ -207,7 +284,15 @@ const MedicineReminders = () => {
       {/* HEADER */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-black font-cyber-title text-white">Quantum Medicine reminders</h2>
+          <div className="flex items-center space-x-3">
+            <h2 className="text-2xl font-black font-cyber-title text-white">Quantum Medicine reminders</h2>
+            {isDemoMode && (
+              <span className="px-2.5 py-0.5 rounded-lg text-[9px] font-mono font-bold uppercase tracking-widest bg-amber-500/10 border border-amber-500/25 text-amber-400 shadow-sm animate-pulse flex items-center space-x-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block animate-ping mr-1"></span>
+                <span>Demo Mode</span>
+              </span>
+            )}
+          </div>
           <p className="text-xs text-slate-500 font-mono mt-1">
             Program daily medication schedules. The console scanner rings synthetic alarms during intake slots.
           </p>
