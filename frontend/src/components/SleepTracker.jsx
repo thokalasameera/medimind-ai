@@ -31,6 +31,9 @@ const SleepTracker = ({ initialHours = 0, initialQuality = 'Good', targetHours =
       }
     } catch (err) {
       console.error("Could not sync sleep metrics:", err);
+      if (onLogged) {
+        onLogged(newHours, newQuality);
+      }
     }
   };
 

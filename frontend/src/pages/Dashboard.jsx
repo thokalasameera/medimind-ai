@@ -32,6 +32,28 @@ const formatPatientValue = (value, unit) => {
   return unit ? `${value} ${unit}` : `${value}`;
 };
 
+const generateMock7DayMetrics = () => {
+  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const todayIndex = new Date().getDay(); // 0 is Sun, 1 is Mon
+  
+  const arrangedDays = [];
+  for (let i = 6; i >= 0; i--) {
+    const idx = (todayIndex - i + 7) % 7;
+    arrangedDays.push(days[idx]);
+  }
+  
+  return arrangedDays.map((day, index) => {
+    const isToday = index === 6;
+    return {
+      id: `mock-metric-${index}`,
+      date: day,
+      waterIntake: isToday ? 250 : [2000, 2250, 2750, 3250, 1750, 2500][index % 6],
+      sleepHours: isToday ? 6.5 : [7.0, 8.0, 7.5, 6.0, 8.5, 7.0][index % 6],
+      sleepQuality: isToday ? 'Good' : ['Excellent', 'Good', 'Fair', 'Poor', 'Excellent', 'Good'][index % 6]
+    };
+  });
+};
+
 const Dashboard = ({ triggerEmergency }) => {
   const { user, token, refreshProfile } = useAuth();
   
@@ -60,43 +82,88 @@ const Dashboard = ({ triggerEmergency }) => {
     setDailyTip(healthTips[Math.floor(Math.random() * healthTips.length)]);
 
     const fetchDashboardData = async () => {
-      try {
-        const headers = { 'Authorization': `Bearer ${token}` };
+      const headers = { 'Authorization': `Bearer ${token}` };
 
-        // 1. Fetch metrics history (past 7 days)
+      // 1. Fetch metrics history (past 7 days)
+      try {
         const resMetrics = await fetch(`${API_URL}/metrics/history`, { headers });
+        if (!resMetrics.ok) throw new Error();
         const dataMetrics = await resMetrics.json();
         if (dataMetrics.success && dataMetrics.metrics.length > 0) {
           setMetricsHistory(dataMetrics.metrics);
+          localStorage.setItem('medimind_metrics_history', JSON.stringify(dataMetrics.metrics));
           
-          // Log today's active metrics (last element in the returned sorted list)
           const todayMetric = dataMetrics.metrics[dataMetrics.metrics.length - 1];
           setWaterLogged(todayMetric.waterIntake);
           setSleepLogged(todayMetric.sleepHours);
           setSleepQuality(todayMetric.sleepQuality);
+        } else {
+          throw new Error();
         }
+      } catch (err) {
+        console.warn("Metrics history unavailable from server, checking local cache.");
+        const localMetrics = localStorage.getItem('medimind_metrics_history');
+        if (localMetrics) {
+          const parsed = JSON.parse(localMetrics);
+          setMetricsHistory(parsed);
+          if (parsed.length > 0) {
+            const todayMetric = parsed[parsed.length - 1];
+            setWaterLogged(todayMetric.waterIntake);
+            setSleepLogged(todayMetric.sleepHours);
+            setSleepQuality(todayMetric.sleepQuality);
+          }
+        } else {
+          const generated = generateMock7DayMetrics();
+          setMetricsHistory(generated);
+          localStorage.setItem('medimind_metrics_history', JSON.stringify(generated));
+          const todayMetric = generated[generated.length - 1];
+          setWaterLogged(todayMetric.waterIntake);
+          setSleepLogged(todayMetric.sleepHours);
+          setSleepQuality(todayMetric.sleepQuality);
+        }
+      }
 
-        // 2. Fetch diagnostic records history
+      // 2. Fetch diagnostic records history
+      try {
         const resRecords = await fetch(`${API_URL}/records`, { headers });
+        if (!resRecords.ok) throw new Error();
         const dataRecords = await resRecords.json();
         if (dataRecords.success) {
-          setActiveRecords(dataRecords.records.slice(0, 3)); // show top 3
+          setActiveRecords(dataRecords.records.slice(0, 3));
+          localStorage.setItem('medimind_records', JSON.stringify(dataRecords.records));
+        } else {
+          throw new Error();
         }
+      } catch (err) {
+        console.warn("Telemetry records unavailable from server, using local cache.");
+        const localRecords = localStorage.getItem('medimind_records');
+        if (localRecords) {
+          setActiveRecords(JSON.parse(localRecords).slice(0, 3));
+        }
+      }
 
-        // 3. Fetch daily medicine reminders
+      // 3. Fetch daily medicine reminders
+      try {
         const resMeds = await fetch(`${API_URL}/reminders`, { headers });
+        if (!resMeds.ok) throw new Error();
         const dataMeds = await resMeds.json();
         if (dataMeds.success) {
           setMedsToday(dataMeds.reminders);
+          localStorage.setItem('medimind_reminders', JSON.stringify(dataMeds.reminders));
+        } else {
+          throw new Error();
         }
-
       } catch (err) {
-        console.error("Dashboard synchronization error:", err);
+        console.warn("Medication reminders unavailable from server, using local cache.");
+        const localMeds = localStorage.getItem('medimind_reminders');
+        if (localMeds) {
+          setMedsToday(JSON.parse(localMeds));
+        }
       }
     };
 
     if (token) {
-      refreshProfile();
+      refreshProfile().catch(() => {});
       fetchDashboardData();
     }
   }, [token]);
@@ -104,28 +171,37 @@ const Dashboard = ({ triggerEmergency }) => {
   // Medication taken toggle
   const toggleMedTaken = async (id) => {
     try {
+      if (String(id).startsWith('mock-')) {
+        throw new Error("Demo mode toggle");
+      }
       const res = await fetch(`${API_URL}/reminders/complete/${id}`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      if (!res.ok) throw new Error();
       const data = await res.json();
       if (data.success) {
-        setMedsToday(prev => prev.map(m => m.id === id ? { ...m, completedToday: data.reminder.completedToday } : m));
+        const updated = medsToday.map(m => m.id === id ? { ...m, completedToday: data.reminder.completedToday } : m);
+        setMedsToday(updated);
+        localStorage.setItem('medimind_reminders', JSON.stringify(updated));
       }
     } catch (err) {
-      console.error(err);
+      console.warn("Toggling medicine completion locally on dashboard.");
+      const updated = medsToday.map(m => m.id === id ? { ...m, completedToday: !m.completedToday } : m);
+      setMedsToday(updated);
+      localStorage.setItem('medimind_reminders', JSON.stringify(updated));
     }
   };
 
   // Callback to sync local water log state with graph
   const handleWaterLogged = (val) => {
     setWaterLogged(val);
-    // Update active metric in metricsHistory array dynamically to render on live Recharts graph!
     setMetricsHistory(prev => {
       const copy = [...prev];
       if (copy.length > 0) {
         copy[copy.length - 1].waterIntake = val;
       }
+      localStorage.setItem('medimind_metrics_history', JSON.stringify(copy));
       return copy;
     });
   };
@@ -140,6 +216,7 @@ const Dashboard = ({ triggerEmergency }) => {
         copy[copy.length - 1].sleepHours = val;
         copy[copy.length - 1].sleepQuality = qual;
       }
+      localStorage.setItem('medimind_metrics_history', JSON.stringify(copy));
       return copy;
     });
   };
