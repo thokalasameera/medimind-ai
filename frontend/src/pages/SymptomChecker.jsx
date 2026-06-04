@@ -14,6 +14,7 @@ import {
   HeartCrack
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { localAnalyzeSymptoms } from '../utils/localPredictors';
 
 const SymptomChecker = () => {
   const { token } = useAuth();
@@ -23,6 +24,7 @@ const SymptomChecker = () => {
   
   const [diagnosing, setDiagnosing] = useState(false);
   const [report, setReport] = useState(null);
+  const [isDemoMode, setIsDemoMode] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
@@ -85,16 +87,20 @@ const SymptomChecker = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ symptoms: selectedSymptoms })
       });
+      if (!res.ok) throw new Error("Flask service returned non-OK status");
       const data = await res.json();
       
       if (data.success) {
         setReport(data);
+        setIsDemoMode(false);
       } else {
-        alert("ML service returned an error. Make sure ml_service is online.");
+        throw new Error(data.error || "Symptom check returned unsuccessful status");
       }
     } catch (err) {
-      console.error(err);
-      alert("Could not reach Python Flask ML service. Make sure it is running on port 5005.");
+      console.warn("Flask ML service offline, running local fallback symptom analyzer.", err);
+      setIsDemoMode(true);
+      const data = localAnalyzeSymptoms(selectedSymptoms);
+      setReport(data);
     } finally {
       setDiagnosing(false);
     }
@@ -175,7 +181,15 @@ const SymptomChecker = () => {
     <div className="space-y-6">
       
       <div>
-        <h2 className="text-2xl font-black font-cyber-title text-white">AI Symptom Diagnostic Checker</h2>
+        <div className="flex items-center space-x-3">
+          <h2 className="text-2xl font-black font-cyber-title text-white">AI Symptom Diagnostic Checker</h2>
+          {isDemoMode && (
+            <span className="px-2.5 py-0.5 rounded-lg text-[9px] font-mono font-bold uppercase tracking-widest bg-amber-500/10 border border-amber-500/25 text-amber-400 shadow-sm animate-pulse flex items-center space-x-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block animate-ping mr-1"></span>
+              <span>Demo Mode</span>
+            </span>
+          )}
+        </div>
         <p className="text-xs text-slate-500 font-mono mt-1">
           Perform a quantum analysis over active physical symptoms using our lookup algorithms.
         </p>

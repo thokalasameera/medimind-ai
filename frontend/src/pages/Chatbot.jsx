@@ -11,6 +11,7 @@ import {
   Sparkles,
   Activity
 } from 'lucide-react';
+import { localChatbot } from '../utils/localPredictors';
 
 const Chatbot = () => {
   const [messages, setMessages] = useState([
@@ -21,6 +22,7 @@ const Chatbot = () => {
   ]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isDemoMode, setIsDemoMode] = useState(false);
   const threadEndRef = useRef(null);
 
   // Auto-scroll messaging thread
@@ -46,19 +48,20 @@ const Chatbot = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: text })
       });
+      if (!res.ok) throw new Error("Flask service returned non-OK status");
       const data = await res.json();
       
       if (data.success) {
         setMessages(prev => [...prev, { sender: 'bot', text: data.reply }]);
+        setIsDemoMode(false);
       } else {
-        setMessages(prev => [...prev, { sender: 'bot', text: "Error syncing with medical database. Please try again." }]);
+        throw new Error(data.reply || "Chatbot returned unsuccessful status");
       }
     } catch (err) {
-      console.error(err);
-      setMessages(prev => [...prev, { 
-        sender: 'bot', 
-        text: "MediMind NLP node offline. Verify Python Flask server is active on port 5005." 
-      }]);
+      console.warn("Flask ML service offline, running local fallback chatbot.", err);
+      setIsDemoMode(true);
+      const data = localChatbot(text);
+      setMessages(prev => [...prev, { sender: 'bot', text: data.reply }]);
     } finally {
       setLoading(false);
     }
@@ -74,7 +77,15 @@ const Chatbot = () => {
       
       {/* HEADER */}
       <div>
-        <h2 className="text-2xl font-black font-cyber-title text-white">AI Clinical Chatbot Console</h2>
+        <div className="flex items-center space-x-3">
+          <h2 className="text-2xl font-black font-cyber-title text-white">AI Clinical Chatbot Console</h2>
+          {isDemoMode && (
+            <span className="px-2.5 py-0.5 rounded-lg text-[9px] font-mono font-bold uppercase tracking-widest bg-amber-500/10 border border-amber-500/25 text-amber-400 shadow-sm animate-pulse flex items-center space-x-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block animate-ping mr-1"></span>
+              <span>Demo Mode</span>
+            </span>
+          )}
+        </div>
         <p className="text-xs text-slate-500 font-mono mt-1">
           Interface with our custom natural language processor to resolve diagnostic queries in real-time.
         </p>
@@ -100,7 +111,7 @@ const Chatbot = () => {
 
             <div className="flex items-center space-x-1.5 text-[9px] font-mono text-neon-purple bg-neon-purple/5 border border-neon-purple/10 px-2.5 py-1 rounded-lg uppercase tracking-wider">
               <Cpu className="w-3 h-3 animate-spin" />
-              <span>TF-IDF Context Sync</span>
+              <span>{isDemoMode ? 'Local AI Fallback Active' : 'TF-IDF Context Sync'}</span>
             </div>
           </div>
 

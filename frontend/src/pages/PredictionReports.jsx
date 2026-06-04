@@ -12,6 +12,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { localPredictDiabetes, localPredictHeart } from '../utils/localPredictors';
 
 const PredictionReports = () => {
   const { user, token } = useAuth();
@@ -19,6 +20,7 @@ const PredictionReports = () => {
   const [activeTab, setActiveTab] = useState('diabetes'); // 'diabetes' or 'heart'
   const [loading, setLoading] = useState(false);
   const [report, setReport] = useState(null);
+  const [isDemoMode, setIsDemoMode] = useState(false);
   
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -73,6 +75,7 @@ const PredictionReports = () => {
           Smoking: diabSmoking
         })
       });
+      if (!res.ok) throw new Error("Flask service returned non-OK status");
       const data = await res.json();
       if (data.success) {
         setReport({
@@ -82,11 +85,31 @@ const PredictionReports = () => {
           suggestions: data.suggestions,
           inputs: { diabAge, diabBmi, diabGlucose, diabHba1c }
         });
+        setIsDemoMode(false);
       } else {
-        alert("ML service returned an error.");
+        throw new Error(data.error || "ML service returned unsuccessful status");
       }
     } catch (err) {
-      alert("Could not communicate with Flask ML service on port 5005. Verify it is running.");
+      console.warn("Flask ML service offline, running local fallback diabetes model.", err);
+      setIsDemoMode(true);
+      const data = localPredictDiabetes({
+        Age: diabAge,
+        BMI: diabBmi,
+        SystolicBP: diabSys,
+        DiastolicBP: diabDia,
+        HbA1c: diabHba1c,
+        BloodGlucose: diabGlucose,
+        GeneticallyPredisposed: diabFamily,
+        PhysicalActivity: diabActivity,
+        Smoking: diabSmoking
+      });
+      setReport({
+        type: 'diabetes',
+        score: data.risk_score,
+        category: data.category,
+        suggestions: data.suggestions,
+        inputs: { diabAge, diabBmi, diabGlucose, diabHba1c }
+      });
     } finally {
       setLoading(false);
     }
@@ -114,6 +137,7 @@ const PredictionReports = () => {
           ExerciseAngina: heartAngina
         })
       });
+      if (!res.ok) throw new Error("Flask service returned non-OK status");
       const data = await res.json();
       if (data.success) {
         setReport({
@@ -123,11 +147,31 @@ const PredictionReports = () => {
           suggestions: data.suggestions,
           inputs: { heartAge, heartChol, heartBp, heartMaxHr }
         });
+        setIsDemoMode(false);
       } else {
-        alert("ML service returned an error.");
+        throw new Error(data.error || "ML service returned unsuccessful status");
       }
     } catch (err) {
-      alert("Could not communicate with Flask ML service on port 5005. Verify it is running.");
+      console.warn("Flask ML service offline, running local fallback heart model.", err);
+      setIsDemoMode(true);
+      const data = localPredictHeart({
+        Age: heartAge,
+        Sex: heartSex,
+        ChestPainType: heartCp,
+        RestingBP: heartBp,
+        Cholesterol: heartChol,
+        FastingBS: heartFbs,
+        RestingECG: heartEcg,
+        MaxHR: heartMaxHr,
+        ExerciseAngina: heartAngina
+      });
+      setReport({
+        type: 'heart',
+        score: data.risk_score,
+        category: data.category,
+        suggestions: data.suggestions,
+        inputs: { heartAge, heartChol, heartBp, heartMaxHr }
+      });
     } finally {
       setLoading(false);
     }
@@ -187,7 +231,15 @@ const PredictionReports = () => {
       {/* HEADER SECTION */}
       <div className="flex flex-col md:flex-row md:items-center justify-between space-y-4 md:space-y-0">
         <div>
-          <h2 className="text-2xl font-black font-cyber-title text-white">Quantum ML Predictive Reports</h2>
+          <div className="flex items-center space-x-3">
+            <h2 className="text-2xl font-black font-cyber-title text-white">Quantum ML Predictive Reports</h2>
+            {isDemoMode && (
+              <span className="px-2.5 py-0.5 rounded-lg text-[9px] font-mono font-bold uppercase tracking-widest bg-amber-500/10 border border-amber-500/25 text-amber-400 shadow-sm animate-pulse flex items-center space-x-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block animate-ping mr-1"></span>
+                <span>Demo Mode</span>
+              </span>
+            )}
+          </div>
           <p className="text-xs text-slate-500 font-mono mt-1">
             Feed clinical parameters into our Random Forest models to compile disease risk telemetry.
           </p>

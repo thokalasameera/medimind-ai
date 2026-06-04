@@ -1,9 +1,8 @@
-<<<<<<< HEAD
 # MediMind AI — Futuristic AI-Powered Healthcare Console
 
 ### *"Predict. Prevent. Protect."*
 
-MediMind AI is a state-of-the-art, multi-tier healthcare console designed with a gorgeous dark glassmorphism user interface. Engineered for placement demonstrations and resume portfolios, this web application predicts chronic health risks using local machine learning classifiers, schedules daily medicine alerts with synthesized alarms, logs tracking metrics, and integrates interactive speech-to-text symptom checker modules.
+MediMind AI is a state-of-the-art, multi-tier healthcare console designed with a gorgeous dark glassmorphism user interface. This web application predicts chronic health risks using local machine learning classifiers, schedules daily medicine alerts with synthesized alarms, logs tracking metrics, and integrates interactive speech-to-text symptom checker modules.
 
 ---
 
@@ -48,8 +47,8 @@ Predicts cardiovascular warnings using key clinical data:
 ### 3. AI NLP Medical Chatbot Companion
 Uses a local TF-IDF vectorizer + Cosine Similarity index running over a curated database of clinical Q&As. If user questions query custom terms (e.g. fever, headache, exercise, hydration), it returns highly accurate medical advice. It runs 100% offline without requiring internet connections or expensive API keys!
 
-### 4. Speech-to-Text Symptom checker
-Integrates Web SpeechRecognition to let patients dictate symptoms. Our backend maps inputs to potential conditions (Bronchitis, Migraines, Angina, Anemia), scores overall health, and alerts users if critical parameters (like chest pains) are registered.
+### 4. Speech-to-Text Symptom Checker
+Integrates Web SpeechRecognition to let patients dictate symptoms. The backend maps inputs to potential conditions (Bronchitis, Migraines, Angina, Anemia), scores overall health, and alerts users if critical parameters (like chest pains) are registered.
 
 ---
 
@@ -77,7 +76,7 @@ MediMind AI includes a double-clickable launcher script that automates installat
 
 By default, the backend uses **SQLite** (saving the database to `backend/database.sqlite` automatically). This requires zero database setups!
 
-To connect the console to a **MySQL** server as requested:
+To connect the console to a **MySQL** server:
 1. Start your local MySQL server.
 2. Create an empty database in MySQL named `medimind_db`.
 3. Open `backend/.env` in an editor.
@@ -85,7 +84,7 @@ To connect the console to a **MySQL** server as requested:
    ```env
    # Switch dialect from 'sqlite' to 'mysql'
    DB_DIALECT=mysql
-   
+
    # Uncomment and adjust your MySQL credentials:
    DB_HOST=localhost
    DB_USER=your_mysql_username
@@ -100,7 +99,9 @@ To connect the console to a **MySQL** server as requested:
 * **Circadian Voice Readouts**: Symptoms Checker results are vocalized aloud using browser SpeechSynthesis.
 * **Web Audio Sound Alarm**: Medicine reminders match current local time, flashing a warning banner and synthesizing electronic alarm tones in your sound card directly via HTML5 Web Audio oscillators.
 * **Circadian Graph Backfill**: New user accounts are seeded with 7 days of realistic biometric data (hydration/sleep logs) to immediately render vibrant animated graphs upon first boot!
-=======
-# medimind-ai
-MediMind AI is an intelligent healthcare dashboard designed to provide smart health monitoring and AI-powered assistance. The platform includes features like symptom checking, AI health chat, prediction reports, hydration tracking, sleep monitoring, reminders, and emergency alerts through a modern futuristic interface.
->>>>>>> 481952549ab2b9032800a0c61ccec675214afbd4
+
+---
+
+## 📄 License
+
+MIT License — Free to use, modify, and distribute.

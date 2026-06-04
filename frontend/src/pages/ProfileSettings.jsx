@@ -30,6 +30,20 @@ const ProfileSettings = () => {
   const [msg, setMsg] = useState('');
   const [error, setError] = useState('');
 
+  // Keep local state in sync when the user context loads/updates asynchronously!
+  React.useEffect(() => {
+    if (user) {
+      setName(user.name || '');
+      setAge(user.age || 30);
+      setGender(user.gender || 'Not Specified');
+      setBloodType(user.bloodType || 'O+');
+      setWeight(user.weight || 70.0);
+      setHeight(user.height || 170.0);
+      setWaterTarget(user.waterTarget || 3000);
+      setSleepTarget(user.sleepTarget || 8.0);
+    }
+  }, [user]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);

@@ -50,8 +50,7 @@ app.get('/api/health', (req, res) => {
 async function startServer() {
   try {
     // Synchronize DB tables. If tables don't exist, Sequelize creates them.
-    // 'alter: true' safely updates schemas without wiping user diagnostic history.
-    await sequelize.sync({ alter: true });
+    await sequelize.sync();
     console.log("⚡ [DB] Database tables synchronized successfully.");
 
     app.listen(PORT, () => {

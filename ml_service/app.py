@@ -14,24 +14,40 @@ diabetes_model = None
 heart_disease_model = None
 chatbot_model = None
 
+def find_model_path(model_name):
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    path1 = os.path.join(base_dir, '../models', model_name)
+    if os.path.exists(path1):
+        return path1
+    path2 = os.path.join('models', model_name)
+    if os.path.exists(path2):
+        return path2
+    path3 = os.path.join('..', 'models', model_name)
+    if os.path.exists(path3):
+        return path3
+    return None
+
 def load_models():
     global diabetes_model, heart_disease_model, chatbot_model
     try:
-        if os.path.exists('models/diabetes_model.pkl'):
-            diabetes_model = joblib.load('models/diabetes_model.pkl')
-            print("Loaded Diabetes Risk model successfully.")
+        diabetes_path = find_model_path('diabetes_model.pkl')
+        if diabetes_path:
+            diabetes_model = joblib.load(diabetes_path)
+            print(f"Loaded Diabetes Risk model successfully from: {diabetes_path}")
         else:
             print("WARNING: Diabetes model not found. Run train_models.py first.")
             
-        if os.path.exists('models/heart_disease_model.pkl'):
-            heart_disease_model = joblib.load('models/heart_disease_model.pkl')
-            print("Loaded Heart Disease model successfully.")
+        heart_path = find_model_path('heart_disease_model.pkl')
+        if heart_path:
+            heart_disease_model = joblib.load(heart_path)
+            print(f"Loaded Heart Disease model successfully from: {heart_path}")
         else:
             print("WARNING: Heart disease model not found. Run train_models.py first.")
             
-        if os.path.exists('models/chatbot_model.pkl'):
-            chatbot_model = joblib.load('models/chatbot_model.pkl')
-            print("Loaded Chatbot intelligence matrix successfully.")
+        chatbot_path = find_model_path('chatbot_model.pkl')
+        if chatbot_path:
+            chatbot_model = joblib.load(chatbot_path)
+            print(f"Loaded Chatbot intelligence matrix successfully from: {chatbot_path}")
         else:
             print("WARNING: Chatbot knowledge model not found. Run train_models.py first.")
     except Exception as e:

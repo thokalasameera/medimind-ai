@@ -2,16 +2,22 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext();
 
-// Production build (Vercel) always uses Render — never localhost
+const isLocal = typeof window !== 'undefined' && 
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
 const RENDER_API = 'https://medimind-backend-g6el.onrender.com/api';
 
-export const API_URL = import.meta.env.PROD
-  ? RENDER_API
-  : (import.meta.env.VITE_API_URL || 'http://localhost:5000/api');
+export const API_URL = isLocal
+  ? 'http://localhost:5000/api'
+  : (import.meta.env.PROD
+      ? RENDER_API
+      : (import.meta.env.VITE_API_URL || 'http://localhost:5000/api'));
 
-export const ML_API_URL = import.meta.env.PROD
-  ? (import.meta.env.VITE_ML_API_URL || '')
-  : (import.meta.env.VITE_ML_API_URL || 'http://localhost:5005');
+export const ML_API_URL = isLocal
+  ? 'http://localhost:5005'
+  : (import.meta.env.PROD
+      ? (import.meta.env.VITE_ML_API_URL || '')
+      : (import.meta.env.VITE_ML_API_URL || 'http://localhost:5005'));
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
